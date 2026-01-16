@@ -1,4 +1,8 @@
 / {
+	zephyr,user {
+		io-channels = <&adc 0>, <&adc 1>;
+	};
+
 	aliases {
 		spi-controller = &spi21;
 	};
@@ -10,13 +14,28 @@
         };
 
 		ad5761_ldac: ad5761ldac {
-            gpios = <&gpio1 12 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
             label = "AD5761 LDAC";
 		};
 
 		ad5761_reset: ad5761reset {
-            gpios = <&gpio1 13 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
             label = "AD5761 RESET";
+		};
+
+		ad5761_sync_ii: ad5761sync_ii {
+            gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+            label = "AD5761 II SYNC";
+        };
+
+		ad5761_ldac_ii: ad5761ldac_ii {
+            gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+            label = "AD5761 II LDAC";
+		};
+
+		ad5761_reset_ii: ad5761reset_ii {
+            gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+            label = "AD5761 II RESET";
 		};
     };
 };
@@ -25,9 +44,17 @@
 	status = "disabled";
 };
 
+&led1 {
+	status = "disabled";
+};
+
 &button0 {
 	status = "disabled";
 };
+
+// &button3 {
+// 	status = "disabled";
+// };
 
 &pinctrl {
 	spi21_default: spi21_default {
@@ -59,6 +86,43 @@
 		spi-max-frequency = <1600000>;
 		label = "GenDev";
 	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+    status = "okay";
+
+    // Drain voltage VDS
+    channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_EXTERNAL0";
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+		zephyr,input-positive = <NRF_SAADC_AIN7>;	/* P1.14 */
+		// zephyr,input-negative = <NRF_SAADC_AIN2>;	/* P1.06 */
+		zephyr,resolution = <12>;
+	};
+
+    // Transimpedance ID to voltage
+    channel@1 {
+        reg = <1>;
+        zephyr,gain = "ADC_GAIN_1_4";
+        zephyr,reference = "ADC_REF_EXTERNAL0";
+        zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+        zephyr,input-positive = <NRF_SAADC_AIN6>;       /* P1.13 */
+        zephyr,resolution = <12>;
+    };
+
+    // Battery sense
+    channel@2 {
+        reg = <2>;
+        zephyr,gain = "ADC_GAIN_1_4";
+        zephyr,reference = "ADC_REF_EXTERNAL0";
+        zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+        zephyr,input-positive = <NRF_SAADC_AIN5>;    /* P1.12 */
+        zephyr,resolution = <12>;
+    };
 };
 
 // &uart20 {

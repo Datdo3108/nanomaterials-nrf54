@@ -5,4 +5,4 @@ project(my_spi)
 
 target_sources(app PRIVATE src/main.c)
 
-zephyr_library_sources(src/ad5761.c src/ble.c)
+zephyr_library_sources(src/ad5761.c src/ble.c src/adc.c)
