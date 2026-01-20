@@ -66,12 +66,14 @@ struct dac_fsm {
 
 struct dac_output_fsm {
     dac_state_t state;
+    dac_dir_t direction;
     uint16_t value;
     uint16_t start;
     uint16_t stop;
     uint16_t step;
     uint16_t cycles;
     uint16_t cycle_counter;
+    bool backward;
 };
 
 void ad5761_init(const struct ad5761_device_str *ad5761_dev);

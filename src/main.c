@@ -37,6 +37,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 
 #ifdef POLL_DEBUG
 
+// #define DEBUG_BIPOLAR_DAC_1_2             // Test bipolar output signal for DAC 1 & 2
 // #define DEBUG_DAC_1_THEN_2              // Run transfer curve
 // #define DEBUG_DAC_2_THEN_1              // Run output curve
 #define DEBUG_INJECT_CURRENT            // Run constant current 
@@ -153,6 +154,35 @@ void led_state_machine_step(void)
         break;
     }
 }
+
+#ifdef DEBUG_BIPOLAR_DAC_1_2
+
+static const struct dac_fsm dac_fsm_default={
+        .state = DAC_STATE_ON,
+        .direction = DAC_DIR_UP,
+        .value = 0,
+        .start = 0,
+        .stop = 55000,
+        .step = 5000,
+        .continuous = false,
+        .cycle_counter = 0,
+        .cycles = 6,
+        .backward = true,
+};
+
+static const struct dac_output_fsm dac_2_output_fsm_default={
+        .state = DAC_STATE_ON,
+        .direction = DAC_DIR_UP,
+        .value = 0,
+        .start = 0,
+        .stop = 55000,
+        .step = 5000,
+        .cycle_counter = 0,
+        .cycles = 6,
+        .backward = true,
+};
+
+#endif
 
 #ifdef DEBUG_DAC_1_THEN_2
 
@@ -318,10 +348,21 @@ int main(void){
 
         ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
         ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x43);   // Write to control register
+
+        #ifdef DEBUG_BIPOLAR_DAC_1_2
+        ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
+        ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x1D);   // Write to control register
+        #endif
+
         ad5761_readback_control_register(&ad5761_dev_i);
 
         ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset
         ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0x43);   // Write to control register
+
+        #ifdef DEBUG_BIPOLAR_DAC_1_2
+        ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset
+        ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0x1D);   // Write to control register
+        #endif
         ad5761_readback_control_register(&ad5761_dev_ii);
 
         #ifdef DEBUG_INJECT_CURRENT
@@ -385,6 +426,10 @@ int main(void){
                         // ad5761_generate_output_signal(&ad5761_dev_i, dac_2_output_fsm_runtime.value);
 
                         // ad5761_fsm_oect_output_curve(&ad5761_dev_ii, &dac_fsm_runtime, &ad5761_dev_i, &dac_2_output_fsm_runtime);
+                        #endif
+                        #ifdef DEBUG_BIPOLAR_DAC_1_2
+                        // ad5761_fsm_step_triangle(&ad5761_dev_i, &dac_fsm_runtime);
+                        ad5761_fsm_step_triangle(&ad5761_dev_ii, &dac_fsm_runtime);
                         #endif
                 }
 
