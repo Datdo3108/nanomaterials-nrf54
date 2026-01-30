@@ -62,6 +62,7 @@ struct dac_fsm {
     uint16_t cycles;
     uint16_t cycle_counter;
     bool backward;
+    bool bipolar;
 };
 
 struct dac_output_fsm {
@@ -74,6 +75,7 @@ struct dac_output_fsm {
     uint16_t cycles;
     uint16_t cycle_counter;
     bool backward;
+    bool bipolar;
 };
 
 void ad5761_init(const struct ad5761_device_str *ad5761_dev);

@@ -309,7 +309,11 @@ void ad5761_fsm_step_output(const struct ad5761_device_str *dev,
                 struct dac_output_fsm *fsm)
 {
     if (fsm->state != DAC_STATE_ON) {
-        fsm->value = 0;
+        if(fsm->bipolar == false){
+            fsm->value = 0;
+        } else {
+            fsm->value = 32768;
+        }
         ad5761_generate_output_signal(dev, fsm->value);
         return;
     }
@@ -324,7 +328,12 @@ void ad5761_fsm_step_triangle(const struct ad5761_device_str *dev,
                 struct dac_fsm *fsm)
 {
     if (fsm->state != DAC_STATE_ON) {
-        fsm->value = 0;
+        if(fsm->bipolar == false){
+            fsm->value = 0;
+        } else {
+            fsm->value = 32768;
+        }
+
         ad5761_generate_output_signal(dev, fsm->value);
         return;
     }

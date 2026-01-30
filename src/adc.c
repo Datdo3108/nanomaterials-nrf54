@@ -8,7 +8,7 @@
 
 float adc_average = 0.0f;
 int adc_mV;
-uint16_t window_len = 1;
+uint16_t window_len = 64;
 
 static const struct device *adc_dev = DEVICE_DT_GET(ADC_NODE);
 static const struct adc_channel_cfg channel_cfgs[] = {
