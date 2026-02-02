@@ -6,6 +6,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <math.h>
 
+extern int adc_mV;
+
 void adc_init(void);
 void adc_read_channel(uint8_t index);
 void disable_adc(void);

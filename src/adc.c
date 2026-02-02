@@ -79,7 +79,7 @@ void adc_read_channel_mV(uint8_t channel) {
         adc_mV = adc_to_mV(adc_average, 4);
     }
 
-    printk("ADC\tChannel: %u\t Read value: %.2f\t Voltage value: %umV\n", channel, (double)adc_average, adc_mV);
+    // printk("ADC\tChannel: %u\t Read value: %.2f\t Voltage value: %umV\n", channel, (double)adc_average, adc_mV);
 }
 
 

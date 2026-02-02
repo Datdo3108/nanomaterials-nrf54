@@ -1,4 +1,5 @@
 #include "ble.h"
+#include "ad5761.h"
 
 #define EN_LOGGING
 // #define SAMPLE_BLE_CODE
@@ -33,8 +34,13 @@ static const struct bt_data sd[] = {
     BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
 };
 
-#define ADV_INTERVAL_MIN  3200//   
-#define ADV_INTERVAL_MAX  6400 //
+/* 
+    Advertising interval: time(s) = 0.625 * value
+    Ex: value = 3200
+        time = 3200*0.625 = 2
+*/
+#define ADV_INTERVAL_MIN  800      // 
+#define ADV_INTERVAL_MAX  1600      // Time (s) = 0.625 * value
 
 static const struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
     BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_NO_2M,
@@ -44,37 +50,56 @@ static const struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
 
 const static struct bt_gatt_attr *tx_attr;
 
+#define RX_BUF_SIZE 16
+
+static uint8_t ble_rx_data[RX_BUF_SIZE];
+static size_t  ble_rx_len;
+
+bool update_dac_ble;
+
+void ble_rx_machine(void)
+{   
+    for (int i = 0; i < 4; i++) {
+        BLE_PACKET.ntf_read_data[i] = ble_rx_data[i];
+    }
+    update_dac_ble = 1;
+}
+
 static ssize_t on_write(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
     uint16_t len, uint16_t offset, uint8_t flags)   // received data from device
 {
-    const uint8_t *data = buf;
-    for (int i = 0; i < len; i++) {
-        // LOG_INF("0x%02X ", data[i]);
+    if (offset != 0) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
     }
-    // LOG_INF("\n");
-    if (data[0] == 0x2A && data[1] == 0x80){
-        uint8_t data_size = data[2];
-        uint8_t received_crc = 0;
+
+    ble_rx_len = MIN(len, RX_BUF_SIZE);
+    memcpy(ble_rx_data, buf, ble_rx_len);
+
+    printk("RX write (%d bytes): ", ble_rx_len);
+    for (int i = 0; i < ble_rx_len; i++) {
+        printk("%02X ", ble_rx_data[i]);
     }
+    printk("\n");
+
+    ble_rx_machine();
+
     return len;
 }
 
 static ssize_t on_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, 
     void *buf, uint16_t len, uint16_t offset)       // write data to device
 {
-    // Trả về dữ liệu (read_value) khi có yêu cầu đọc
-    // iData_str data;             // Data received
-    uint8_t read_value[16];         /* Set this data */
+    // uint8_t read_value[2];         /* Set this data */
 
-    size_t read_len = sizeof(read_value);
+    size_t read_len = sizeof(BLE_PACKET.ntf_read_data);
 
-    // Nếu offset lớn hơn kích thước dữ liệu, không có gì để trả về
+    // If offset size is larger than data size, nothing to return
     if (offset > read_len) {
         return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
     }
 
-    // Trả về phần dữ liệu từ offset
-    return bt_gatt_attr_read(conn, attr, buf, len, offset, read_value, read_len);
+    // Return value from offset offset
+    return bt_gatt_attr_read(conn, attr, buf, len, offset, BLE_PACKET.ntf_read_data, read_len);
 }
 
 struct bt_conn *default_conn;
@@ -87,11 +112,11 @@ static void tx_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 }
 
 BT_GATT_SERVICE_DEFINE(my_service,
-    BT_GATT_PRIMARY_SERVICE(BT_UUID_DECLARE_16(0x1234)),  // có thể thay đổi tùy ý
+    BT_GATT_PRIMARY_SERVICE(BT_UUID_DECLARE_16(0x1234)),
     BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_16(0x9876),   // UUID của characteristic
-                           BT_GATT_CHRC_WRITE | BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,            // Cho phép ghi vào
-                           BT_GATT_PERM_WRITE | BT_GATT_PERM_READ | BT_GATT_PERM_NONE,           // Quyền ghi
-                           on_read, on_write, NULL),        // Callback khi nhận dữ liệu
+                           BT_GATT_CHRC_WRITE | BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,            // Enable write
+                           BT_GATT_PERM_WRITE | BT_GATT_PERM_READ | BT_GATT_PERM_NONE,           // Write permission
+                           on_read, on_write, NULL),        // Callback when receive data
     BT_GATT_CCC(tx_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 ); 
 
@@ -196,15 +221,13 @@ BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.disconnected = disconnected,
 };
 
-uint8_t notify_data[4] = {0x01, 0x02, 0x04, 0x03};
-
 void send_notify_data(void)
 {
     if (!default_conn) {
         return;
     }
 
-    bt_gatt_notify(default_conn, &my_service.attrs[1], notify_data, sizeof(notify_data));
+    bt_gatt_notify(default_conn, &my_service.attrs[1], BLE_PACKET.ntf_data, sizeof(BLE_PACKET.ntf_data));
 
     // int err;
     // uint8_t msg[2];

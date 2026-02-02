@@ -19,6 +19,7 @@
 #ifdef MY_BLE_CODE
 
 extern void ble_init(void);
+extern bool update_dac_ble;
 
 #define PACKET_SIZE 2
 
@@ -41,6 +42,8 @@ typedef struct {
     // uint8_t data_crc;
     uint8_t conn_tx_data[2];
     uint8_t adv_data[PACKET_SIZE];
+    uint8_t ntf_data[10];       /* 2-byte each channel data, 5 channels (2 DACs, 3 ADCs)*/
+    uint8_t ntf_read_data[4];
 }ble_packet_str;
 
 extern ble_packet_str BLE_PACKET;

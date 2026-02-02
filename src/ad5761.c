@@ -22,6 +22,8 @@ struct spi_dt_spec spispec = SPI_DT_SPEC_GET(DT_NODELABEL(gendev), SPIOP, 0);
 uint8_t tx_buffer[3] = {0x00, 0x00, 0x00};
 uint8_t rx_buffer[3];
 
+uint16_t dac_value_dummy;
+
 // struct spi_buf tx_spi_buf		= {.buf = (void *)&tx_buffer, .len = 1};
 struct spi_buf tx_spi_buf		= {.buf = tx_buffer, .len = sizeof(tx_buffer)};
 struct spi_buf_set tx_spi_buf_set 	= {.buffers = &tx_spi_buf, .count = 1};
@@ -250,8 +252,8 @@ void ad5761_generate_output_signal(const struct ad5761_device_str *ad5761_dev, u
     ad5761_ldac_update(ad5761_dev);
 
     double dac_mV = ad5761_convert_to_mV(value, 0, 2620);
-    printk("DAC:\tChannel: %u\tSet value (mV): %.2f\n", ad5761_dev->channel, dac_mV);
-    printk("DAC:\tSet value: %u\n", value);
+    // printk("DAC:\tChannel: %u\tSet value (mV): %.2f\n", ad5761_dev->channel, dac_mV);
+    // printk("DAC:\tSet value: %u\n", value);
 }
 
 void ad5761_print_dac_value(const struct ad5761_device_str *ad5761_dev, uint16_t value){
