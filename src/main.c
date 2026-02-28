@@ -1,6 +1,8 @@
 #include "ad5761.h"
 #include "adc.h"
 #include "ble.h"
+#include "button.h"
+#include "switch.h"
 #include <zephyr/kernel.h>
 #include <string.h>
 #include <zephyr/device.h>
@@ -14,13 +16,14 @@
 #ifdef BLE_DEBUG
 
 int main(void){
-        ble_init();
+        // ble_init();
 
         while(1){
-                if(default_conn){
-			send_notify_data();
-		}
-		k_msleep(250);
+                // if(default_conn){
+		// 	send_notify_data();
+		// }
+                printk("Hello world!\n");
+		k_msleep(2000);
         }
 
         return 0;
@@ -45,11 +48,11 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 // #define DEBUG_INJECT_CURRENT            // Run constant current 
 
 #define LED_NODE_2	DT_NODELABEL(led2)
-#define BUTTON_NODE_3   DT_NODELABEL(button3)
+// #define BUTTON_NODE_3   DT_NODELABEL(button3)
 static const struct gpio_dt_spec led_spec_2 = GPIO_DT_SPEC_GET(LED_NODE_2, gpios);
-static const struct gpio_dt_spec button_spec_3 = GPIO_DT_SPEC_GET(BUTTON_NODE_3, gpios);
+// static const struct gpio_dt_spec button_spec_3 = GPIO_DT_SPEC_GET(BUTTON_NODE_3, gpios);
 
-static struct gpio_callback button_cb;
+// static struct gpio_callback button_cb;
 
 struct k_timer led_timer;
 struct k_timer dac_timer;
@@ -58,7 +61,7 @@ struct k_poll_signal led_sig;
 struct k_poll_signal dac_sig;
 struct k_poll_signal adc_0_sig;
 // struct k_poll_signal ble_sig;
-static struct k_poll_signal button_sig;
+// static struct k_poll_signal button_sig;
 
 
 #define ADC_INTERVAL_US         50000
@@ -85,39 +88,39 @@ void led_timer_cb(struct k_timer *timer)
 //         k_poll_signal_raise(&ble_sig, 0);
 // }
 
-void button_isr(const struct device *dev,
-                struct gpio_callback *cb,
-                uint32_t pins)
-{
-    k_poll_signal_raise(&button_sig, 0);
-}
+// void button_isr(const struct device *dev,
+//                 struct gpio_callback *cb,
+//                 uint32_t pins)
+// {
+//     k_poll_signal_raise(&button_sig, 0);
+// }
 
-static int button_init(void)
-{
-    int ret;
+// static int button_init(void)
+// {
+//     int ret;
 
-    /* Configure button pin as input */
-    ret = gpio_pin_configure_dt(&button_spec_3, GPIO_INPUT);
-    if (ret) {
-        return ret;
-    }
+//     /* Configure button pin as input */
+//     ret = gpio_pin_configure_dt(&button_spec_3, GPIO_INPUT);
+//     if (ret) {
+//         return ret;
+//     }
 
-    /* Configure interrupt on button press */
-    ret = gpio_pin_interrupt_configure_dt(&button_spec_3,
-                                          GPIO_INT_EDGE_TO_ACTIVE);
-    if (ret) {
-        return ret;
-    }
+//     /* Configure interrupt on button press */
+//     ret = gpio_pin_interrupt_configure_dt(&button_spec_3,
+//                                           GPIO_INT_EDGE_TO_ACTIVE);
+//     if (ret) {
+//         return ret;
+//     }
 
-    /* Initialize and register callback */
-    gpio_init_callback(&button_cb,
-                       button_isr,
-                       BIT(button_spec_3.pin));
+//     /* Initialize and register callback */
+//     gpio_init_callback(&button_cb,
+//                        button_isr,
+//                        BIT(button_spec_3.pin));
 
-    gpio_add_callback(button_spec_3.port, &button_cb);
+//     gpio_add_callback(button_spec_3.port, &button_cb);
 
-    return 0;
-}
+//     return 0;
+// }
 
 typedef enum {
     LED_STATE_ON,
@@ -380,11 +383,20 @@ int main(void){
         ad5761_init(&ad5761_dev_i);
         ad5761_init(&ad5761_dev_ii);
         adc_init();
-        button_init();
+        // button_init();
         ble_init();
+        switch_init();
+        switch_voltage_config();
 
         ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
-        ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x43);   // Write to control register
+        // ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x43);   // Write to control register
+        /* 
+                Be careful when set 0xC2 (bipolar range)
+                Initial output always -5V
+                Must set output to 0V right after that
+        */
+        ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 0
+        ad5761_generate_output_signal(&ad5761_dev_i, 0);
 
         #ifdef DEBUG_BIPOLAR_DAC_1_2
         ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
@@ -396,7 +408,14 @@ int main(void){
         ad5761_readback_control_register(&ad5761_dev_i);
 
         ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset
-        ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0x43);   // Write to control register
+        // ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0x43);   // Write to control register
+        /* 
+                Be careful when set 0xC2 (bipolar range)
+                Initial output always -5V
+                Must set output to 0V right after that
+        */
+        ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 0
+        ad5761_generate_output_signal(&ad5761_dev_ii, 0);
 
         #ifdef DEBUG_BIPOLAR_DAC_1_2
         ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset
@@ -415,7 +434,7 @@ int main(void){
         k_poll_signal_init(&led_sig);
         k_poll_signal_init(&dac_sig);
         k_poll_signal_init(&adc_0_sig);
-        k_poll_signal_init(&button_sig);
+        // k_poll_signal_init(&button_sig);
         // k_poll_signal_init(&ble_sig);
 
         k_timer_init(&led_timer, led_timer_cb, NULL);
@@ -438,9 +457,9 @@ int main(void){
                 K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
                                         K_POLL_MODE_NOTIFY_ONLY,
                                         &adc_0_sig),
-                K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
-                                        K_POLL_MODE_NOTIFY_ONLY,
-                                        &button_sig),
+                // K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                //                         K_POLL_MODE_NOTIFY_ONLY,
+                //                         &button_sig),
                 // K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
                 //                         K_POLL_MODE_NOTIFY_ONLY,
                 //                         &ble_sig),
@@ -541,37 +560,37 @@ int main(void){
                         }
                 }
 
-                /* Event 3: Button trigger */
-                if (events[3].signal->signaled) {
-                        events[3].signal->signaled = 0;
+                // /* Event 3: Button trigger */
+                // if (events[3].signal->signaled) {
+                //         events[3].signal->signaled = 0;
                         
-                        int64_t now = k_uptime_get();
-                        int64_t last_press = now;
-                        while(now - last_press <= 200){
-                                now = k_uptime_get();
-                                // printk("Now: %" PRId64 "\n", now);
-                                // printk("Last press: %" PRId64 "\n", last_press);
-                        }
+                //         int64_t now = k_uptime_get();
+                //         int64_t last_press = now;
+                //         while(now - last_press <= 200){
+                //                 now = k_uptime_get();
+                //                 // printk("Now: %" PRId64 "\n", now);
+                //                 // printk("Last press: %" PRId64 "\n", last_press);
+                //         }
 
-                        printk("Start measuring\n");
+                //         printk("Start measuring\n");
 
-                        // static int64_t last_press;
-                        // int64_t now = k_uptime_get();
+                //         // static int64_t last_press;
+                //         // int64_t now = k_uptime_get();
 
-                        // if (now - last_press <= 1000) {
-                        //         return 0;   /* ignore bounce */
-                        // }
+                //         // if (now - last_press <= 1000) {
+                //         //         return 0;   /* ignore bounce */
+                //         // }
 
-                        // last_press = now;
+                //         // last_press = now;
 
-                        /* DAC channel 1 triangle waveform */
-                        if (dac_fsm_runtime.state == DAC_STATE_OFF) {
-                                // dac_start_triangle(&dac_fsm_runtime);
-                                dac_start_oect_output(&dac_fsm_runtime, &dac_2_output_fsm_runtime);
-                        } else {
-                                dac_stop(&dac_fsm_runtime);
-                        }
-                }
+                //         /* DAC channel 1 triangle waveform */
+                //         if (dac_fsm_runtime.state == DAC_STATE_OFF) {
+                //                 // dac_start_triangle(&dac_fsm_runtime);
+                //                 dac_start_oect_output(&dac_fsm_runtime, &dac_2_output_fsm_runtime);
+                //         } else {
+                //                 dac_stop(&dac_fsm_runtime);
+                //         }
+                // }
         }
 
         return 0;

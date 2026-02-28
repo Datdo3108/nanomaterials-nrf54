@@ -16,33 +16,43 @@
 	
 	leds {
         ad5761_sync: ad5761sync {
-            gpios = <&gpio1 11 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 2 GPIO_ACTIVE_HIGH>;
             label = "AD5761 SYNC";
         };
 
 		ad5761_ldac: ad5761ldac {
-            gpios = <&gpio1 9 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
             label = "AD5761 LDAC";
 		};
 
 		ad5761_reset: ad5761reset {
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 0 GPIO_ACTIVE_HIGH>;
             label = "AD5761 RESET";
 		};
 
 		ad5761_sync_ii: ad5761sync_ii {
-            gpios = <&gpio0 2 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 4 GPIO_ACTIVE_HIGH>;
             label = "AD5761 II SYNC";
         };
 
 		ad5761_ldac_ii: ad5761ldac_ii {
-            gpios = <&gpio0 3 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 5 GPIO_ACTIVE_HIGH>;
             label = "AD5761 II LDAC";
 		};
 
 		ad5761_reset_ii: ad5761reset_ii {
-            gpios = <&gpio0 4 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;
             label = "AD5761 II RESET";
+		};
+
+		sw_in_1: sw_in1 {
+			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+			label = "Analog switch SW1 Pin";
+		};
+
+		sw_in_2: sw_in2 {
+			gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+			label = "Analog switch SW2 Pin";
 		};
     };
 };
@@ -55,13 +65,29 @@
 	status = "disabled";
 };
 
+&led2 {
+	status = "disabled";
+};
+
+&led3 {
+	status = "disabled";
+};
+
 &button0 {
 	status = "disabled";
 };
 
-// &button3 {
-// 	status = "disabled";
-// };
+&button1 {
+	status = "disabled";
+};
+
+&button2 {
+	status = "disabled";
+};
+
+&button3 {
+	status = "disabled";
+};
 
 &pinctrl {
 	spi21_default: spi21_default {
@@ -106,28 +132,28 @@
 		zephyr,gain = "ADC_GAIN_1_4";
 		zephyr,reference = "ADC_REF_EXTERNAL0";
 		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-		zephyr,input-positive = <NRF_SAADC_AIN7>;	/* P1.14 */
+		zephyr,input-positive = <NRF_SAADC_AIN6>;	/* P1.13 */
 		// zephyr,input-negative = <NRF_SAADC_AIN2>;	/* P1.06 */
 		zephyr,resolution = <12>;
 	};
 
-    // VD
+    // Drain Voltage VD
     channel@1 {
         reg = <1>;
         zephyr,gain = "ADC_GAIN_1_4";
         zephyr,reference = "ADC_REF_EXTERNAL0";
         zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-        zephyr,input-positive = <NRF_SAADC_AIN6>;       /* P1.13 */
+        zephyr,input-positive = <NRF_SAADC_AIN5>;       /* P1.12 */
         zephyr,resolution = <12>;
     };
 
-    // VG
+    // Gate Voltage VG
     channel@2 {
         reg = <2>;
         zephyr,gain = "ADC_GAIN_1_4";
         zephyr,reference = "ADC_REF_EXTERNAL0";
         zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-        zephyr,input-positive = <NRF_SAADC_AIN5>;    /* P1.12 */
+        zephyr,input-positive = <NRF_SAADC_AIN7>;    /* P1.14 */
         zephyr,resolution = <12>;
     };
 };
@@ -136,8 +162,8 @@
 // 	status = "disabled";
 // };
 
-// &spi00 {
-// 	status = "disabled";
-// };
+&spi00 {
+	status = "disabled";
+};
 
 
