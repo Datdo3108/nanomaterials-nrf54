@@ -386,7 +386,8 @@ int main(void){
         // button_init();
         ble_init();
         switch_init();
-        switch_voltage_config();
+        // switch_voltage_config();
+        switch_inject_current_config();
 
         ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
         // ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x43);   // Write to control register
