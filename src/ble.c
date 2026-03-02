@@ -56,6 +56,7 @@ static uint8_t ble_rx_data[RX_BUF_SIZE];
 static size_t  ble_rx_len;
 
 bool update_dac_ble;
+bool update_cmd_ble;
 
 void ble_rx_machine(void)
 {   
@@ -102,10 +103,39 @@ static ssize_t on_read(struct bt_conn *conn, const struct bt_gatt_attr *attr,
     return bt_gatt_attr_read(conn, attr, buf, len, offset, BLE_PACKET.ntf_read_data, read_len);
 }
 
+static ssize_t on_read_9000(struct bt_conn *conn,
+                            const struct bt_gatt_attr *attr,
+                            void *buf, uint16_t len, uint16_t offset)
+{
+    return bt_gatt_attr_read(conn, attr, buf, len, offset,
+                             BLE_PACKET.ntf_read_data_9000,
+                             sizeof(BLE_PACKET.ntf_read_data_9000));
+}
+
+static ssize_t on_write_9000(struct bt_conn *conn,
+                             const struct bt_gatt_attr *attr,
+                             const void *buf, uint16_t len,
+                             uint16_t offset, uint8_t flags)
+{
+    // memcpy(BLE_PACKET.ntf_read_data_9000, buf, len);
+    memcpy(BLE_PACKET.ntf_read_data_test, buf, len);
+    /* Add a rx_machine here */
+
+    update_cmd_ble = 1;
+    
+    return len;
+}
+
 struct bt_conn *default_conn;
 volatile bool notify_enable;
 
 static void tx_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
+{
+    bool notif_enabled = (value == BT_GATT_CCC_NOTIFY);
+    printk("Notifications %s\n", notif_enabled ? "enabled" : "disabled");
+}
+
+static void tx2_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 {
     bool notif_enabled = (value == BT_GATT_CCC_NOTIFY);
     printk("Notifications %s\n", notif_enabled ? "enabled" : "disabled");
@@ -118,6 +148,11 @@ BT_GATT_SERVICE_DEFINE(my_service,
                            BT_GATT_PERM_WRITE | BT_GATT_PERM_READ | BT_GATT_PERM_NONE,           // Write permission
                            on_read, on_write, NULL),        // Callback when receive data
     BT_GATT_CCC(tx_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+    BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_16(0x9000),
+                       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
+                       BT_GATT_PERM_READ | BT_GATT_PERM_WRITE,
+                       on_read_9000, on_write_9000, NULL),
+    BT_GATT_CCC(tx2_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 ); 
 
 #ifdef EN_TX_POWER

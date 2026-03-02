@@ -3,6 +3,7 @@
 #include "ble.h"
 #include "button.h"
 #include "switch.h"
+#include "system.h"
 #include <zephyr/kernel.h>
 #include <string.h>
 #include <zephyr/device.h>
@@ -554,11 +555,17 @@ int main(void){
                         adc_read_channel_mV(2);         /* Read VG */
                         BLE_PACKET.ntf_data[4] = (adc_mV >> 8) & 0xFF;
                         BLE_PACKET.ntf_data[5] = adc_mV & 0xFF;
+                        
+                        if(update_cmd_ble){
+                                system_ble_machine();
+                                update_cmd_ble = 0;
+                        }
 
                         /* BLE notify */
                         if(default_conn){
                                 send_notify_data();
                         }
+
                 }
 
                 // /* Event 3: Button trigger */
