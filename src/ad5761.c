@@ -238,6 +238,13 @@ void ad5761_readback_control_register(const struct ad5761_device_str *ad5761_dev
     ad5761_24bit_read(ad5761_dev);
 }
 
+void ad5761_software_full_reset(const struct ad5761_device_str *ad5761_dev){
+    ad5761_24bit_write(ad5761_dev, 0x0F, 0x00, 0x00);   // Software full reset
+    // ad5761_24bit_write(ad5761_dev, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 1, range 0 to +5V
+    ad5761_24bit_write(ad5761_dev, 0x04, 0x00, 0xC2);   // Write to control register, B2C = 1, range -5V to +5V
+    ad5761_generate_output_signal(ad5761_dev, 0);
+}
+
 double ad5761_convert_to_mV(uint16_t value, uint16_t vref_n_mV, uint16_t vref_p_mV){
     double dac_mV = (double)value/65536*(vref_p_mV - vref_n_mV);
 
@@ -260,10 +267,6 @@ void ad5761_print_dac_value(const struct ad5761_device_str *ad5761_dev, uint16_t
     double dac_mV = ad5761_convert_to_mV(value, 0, 2620);
     printk("DAC:\tChannel: %u\tSet value (mV): %.2f\n", ad5761_dev->channel, dac_mV);
     printk("DAC:\tSet value: %u\n", value);
-}
-
-void ad5761_software_full_reset(const struct ad5761_device_str *ad5761_dev){
-    ad5761_24bit_write(ad5761_dev, 0x0F, 0x00, 0x00);   // Software full reset
 }
 
 void ad5761_generate_triangular(const struct ad5761_device_str *ad5761_dev, uint16_t start_value, uint16_t stop_value, uint32_t delay_us, uint16_t step, bool cycle){  

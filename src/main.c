@@ -388,17 +388,20 @@ int main(void){
         ble_init();
         switch_init();
         // switch_voltage_config();
-        switch_inject_current_config();
+        // switch_inject_current_config();
 
-        ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
-        // ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x43);   // Write to control register
-        /* 
-                Be careful when set 0xC2 (bipolar range)
-                Initial output always -5V
-                Must set output to 0V right after that
-        */
-        ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 0
-        ad5761_generate_output_signal(&ad5761_dev_i, 0);
+        ad5761_software_full_reset(&ad5761_dev_i);
+        ad5761_software_full_reset(&ad5761_dev_ii);
+
+        // ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
+        // // ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0x43);   // Write to control register
+        // /* 
+        //         Be careful when set 0xC2 (bipolar range)
+        //         Initial output always -5V
+        //         Must set output to 0V right after that
+        // */
+        // ad5761_24bit_write(&ad5761_dev_i, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 0
+        // ad5761_generate_output_signal(&ad5761_dev_i, 0);
 
         #ifdef DEBUG_BIPOLAR_DAC_1_2
         ad5761_24bit_write(&ad5761_dev_i, 0x0F, 0x00, 0x00);   // Software full reset
@@ -409,15 +412,15 @@ int main(void){
 
         ad5761_readback_control_register(&ad5761_dev_i);
 
-        ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset
-        // ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0x43);   // Write to control register
-        /* 
-                Be careful when set 0xC2 (bipolar range)
-                Initial output always -5V
-                Must set output to 0V right after that
-        */
-        ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 0
-        ad5761_generate_output_signal(&ad5761_dev_ii, 0);
+        // ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset
+        // // ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0x43);   // Write to control register
+        // /* 
+        //         Be careful when set 0xC2 (bipolar range)
+        //         Initial output always -5V
+        //         Must set output to 0V right after that
+        // */
+        // ad5761_24bit_write(&ad5761_dev_ii, 0x04, 0x00, 0xC3);   // Write to control register, B2C = 0
+        // ad5761_generate_output_signal(&ad5761_dev_ii, 0);
 
         #ifdef DEBUG_BIPOLAR_DAC_1_2
         ad5761_24bit_write(&ad5761_dev_ii, 0x0F, 0x00, 0x00);   // Software full reset

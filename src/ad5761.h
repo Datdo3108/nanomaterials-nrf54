@@ -88,6 +88,7 @@ void ad5761_write_register(uint8_t address, uint16_t data);
 void ad5761_readback_input_register(const struct ad5761_device_str *ad5761_dev);
 void ad5761_readback_DAC_register(const struct ad5761_device_str *ad5761_dev);
 void ad5761_readback_control_register(const struct ad5761_device_str *ad5761_dev);
+void ad5761_software_full_reset(const struct ad5761_device_str *ad5761_dev);
 
 void ad5761_one_cycle(uint8_t data);
 void ad5761_one_cycle_write(uint8_t data);

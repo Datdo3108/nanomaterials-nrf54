@@ -25,6 +25,8 @@ void system_ble_machine()
             break;
 
         case 0x00:
+            ad5761_software_full_reset(&ad5761_dev_i);
+            ad5761_software_full_reset(&ad5761_dev_ii);
             switch_reset();
             break;
 
