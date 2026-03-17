@@ -20,6 +20,8 @@
 
 extern void ble_init(void);
 extern bool update_dac_ble;
+extern bool update_dac_1_ble;
+extern bool update_dac_2_ble;
 extern bool update_cmd_ble;
 
 #define PACKET_SIZE 2
@@ -30,7 +32,7 @@ typedef struct {
     // uint16_t data_company_id;  // 0xE1F5
     // uint8_t data_sync;           // 0x2A
     // uint8_t data_func;           // thermal : 0x80
-    // uint32_t data_counter;
+    // uint8_t data_counter;
     // uint16_t data_status;
     // uint8_t year;
     // uint8_t month;
@@ -43,10 +45,14 @@ typedef struct {
     // uint8_t data_crc;
     uint8_t conn_tx_data[2];
     uint8_t adv_data[PACKET_SIZE];
-    uint8_t ntf_data[10];       /* 2-byte each channel data, 5 channels (2 DACs, 3 ADCs)*/
+    uint8_t ntf_data[18];       /* 2-byte each channel data, 5 channels (2 DACs, 3 ADCs) 
+                                || add counter data: 4-byte for sample_rate_period
+                                                    8-byte for sample_counter */
     uint8_t ntf_read_data[4];
     uint8_t ntf_read_data_9000[4];      /* Self-defined commands format, 32-bit command in total */
     uint8_t ntf_read_data_test[1];
+    uint32_t sample_rate_period;
+    uint64_t sample_counter;
 }ble_packet_str;
 
 extern ble_packet_str BLE_PACKET;

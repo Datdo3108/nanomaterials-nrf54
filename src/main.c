@@ -48,42 +48,65 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME);
 // #define DEBUG_DAC_2_THEN_1              // Run output curve
 // #define DEBUG_INJECT_CURRENT            // Run constant current 
 
-#define LED_NODE_2	DT_NODELABEL(led2)
+// #define LED_NODE_2	DT_NODELABEL(led2)
 // #define BUTTON_NODE_3   DT_NODELABEL(button3)
-static const struct gpio_dt_spec led_spec_2 = GPIO_DT_SPEC_GET(LED_NODE_2, gpios);
+// static const struct gpio_dt_spec led_spec_2 = GPIO_DT_SPEC_GET(LED_NODE_2, gpios);
 // static const struct gpio_dt_spec button_spec_3 = GPIO_DT_SPEC_GET(BUTTON_NODE_3, gpios);
 
 // static struct gpio_callback button_cb;
 
-struct k_timer led_timer;
-struct k_timer dac_timer;
+struct k_timer dac_i_timer;
+struct k_timer dac_ii_timer;
 struct k_timer adc_0_timer;
-struct k_poll_signal led_sig;
-struct k_poll_signal dac_sig;
+struct k_timer adc_1_timer;
+struct k_timer adc_2_timer;
+struct k_timer ble_timer;
+struct k_poll_signal dac_i_sig;
+struct k_poll_signal dac_ii_sig;
 struct k_poll_signal adc_0_sig;
-// struct k_poll_signal ble_sig;
+struct k_poll_signal adc_1_sig;
+struct k_poll_signal adc_2_sig;
+struct k_poll_signal ble_sig;
 // static struct k_poll_signal button_sig;
 
 
-#define ADC_INTERVAL_US         50000
+#define ADC_INTERVAL_US         10000
 #define NYQUIST_FACTOR          1
 #define DAC_INTERVAL_US         ADC_INTERVAL_US*NYQUIST_FACTOR
+#define BLE_INTERVAL_US         ADC_INTERVAL_US
 
 void adc_0_timer_cb(struct k_timer *timer)
 {
     k_poll_signal_raise(&adc_0_sig, 0);
 }
 
-void dac_timer_cb(struct k_timer *timer)
+void adc_1_timer_cb(struct k_timer *timer)
 {
-    k_poll_signal_raise(&dac_sig, 0);
+    k_poll_signal_raise(&adc_1_sig, 0);
 }
 
-void led_timer_cb(struct k_timer *timer)
+void adc_2_timer_cb(struct k_timer *timer)
 {
-        k_poll_signal_raise(&led_sig, 0);
+    k_poll_signal_raise(&adc_2_sig, 0);
 }
 
+void dac_i_timer_cb(struct k_timer *timer)
+{
+    k_poll_signal_raise(&dac_i_sig, 0);
+}
+
+void dac_ii_timer_cb(struct k_timer *timer)
+{
+    k_poll_signal_raise(&dac_ii_sig, 0);
+}
+
+void ble_timer_cb(struct k_timer *timer)
+{
+        k_poll_signal_raise(&ble_sig, 0);
+}
+
+
+#ifdef TIMER_DEBUG_OLD
 // void ble_timer_cb(struct k_timer *timer)
 // {
 //         k_poll_signal_raise(&ble_sig, 0);
@@ -122,7 +145,9 @@ void led_timer_cb(struct k_timer *timer)
 
 //     return 0;
 // }
+#endif
 
+#ifdef LED_FSM
 typedef enum {
     LED_STATE_ON,
     LED_STATE_OFF,
@@ -166,7 +191,9 @@ void led_state_machine_step(void)
         break;
     }
 }
+#endif
 
+#ifdef DEBUG_DAC_ON_HARDWARE
 #ifdef DEBUG_BLE_DAC
 static const struct dac_fsm dac_fsm_default={
         .state = DAC_STATE_ON,
@@ -339,7 +366,9 @@ static const struct dac_output_fsm dac_2_output_fsm_default={
         .cycles = 1,
 };
 #endif
+#endif
 
+#ifdef DEBUG_DAC_ON_HARDWARE
 struct dac_fsm dac_fsm_runtime;
 struct dac_output_fsm dac_2_output_fsm_runtime;
 
@@ -372,14 +401,12 @@ void dac_stop(struct dac_fsm *fsm)
     /* Stop stepping */
     k_timer_stop(&dac_timer);
 }
-
+#endif
 
 
 int main(void){
-	gpio_pin_configure_dt(&led_spec_2, GPIO_OUTPUT);
-
-
-        gpio_pin_set_dt(&led_spec_2, 1);
+	// gpio_pin_configure_dt(&led_spec_2, GPIO_OUTPUT);
+        // gpio_pin_set_dt(&led_spec_2, 1);
 
         ad5761_init(&ad5761_dev_i);
         ad5761_init(&ad5761_dev_ii);
@@ -436,38 +463,48 @@ int main(void){
         #endif
 
         /* Initialize timer signal */
-        k_poll_signal_init(&led_sig);
-        k_poll_signal_init(&dac_sig);
+        k_poll_signal_init(&dac_i_sig);
+        k_poll_signal_init(&dac_ii_sig);
         k_poll_signal_init(&adc_0_sig);
+        k_poll_signal_init(&adc_1_sig);
+        k_poll_signal_init(&adc_2_sig);
+        k_poll_signal_init(&ble_sig);
         // k_poll_signal_init(&button_sig);
-        // k_poll_signal_init(&ble_sig);
 
-        k_timer_init(&led_timer, led_timer_cb, NULL);
-        k_timer_init(&dac_timer, dac_timer_cb, NULL);
+        k_timer_init(&dac_i_timer, dac_i_timer_cb, NULL);
+        k_timer_init(&dac_ii_timer, dac_ii_timer_cb, NULL);
         k_timer_init(&adc_0_timer, adc_0_timer_cb, NULL);
+        k_timer_init(&adc_1_timer, adc_1_timer_cb, NULL);
+        k_timer_init(&adc_2_timer, adc_2_timer_cb, NULL);
+        k_timer_init(&ble_timer, ble_timer_cb, NULL);
 
         /* Start timer with pre-defined interval */
-        // k_timer_start(&led_timer, K_SECONDS(1), K_SECONDS(1));
-        k_timer_start(&led_timer, K_NO_WAIT, K_SECONDS(1));
-        k_timer_start(&dac_timer, K_NO_WAIT, K_USEC(DAC_INTERVAL_US));
+        k_timer_start(&dac_i_timer, K_NO_WAIT, K_USEC(DAC_INTERVAL_US));
+        k_timer_start(&dac_ii_timer, K_NO_WAIT, K_USEC(DAC_INTERVAL_US));
         k_timer_start(&adc_0_timer, K_NO_WAIT, K_USEC(ADC_INTERVAL_US));
+        k_timer_start(&adc_1_timer, K_NO_WAIT, K_USEC(ADC_INTERVAL_US));
+        k_timer_start(&adc_2_timer, K_NO_WAIT, K_USEC(ADC_INTERVAL_US));
+        k_timer_start(&ble_timer, K_NO_WAIT, K_USEC(ADC_INTERVAL_US));
 
         struct k_poll_event events[] = {
                 K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
                                         K_POLL_MODE_NOTIFY_ONLY,
-                                        &led_sig),
+                                        &dac_i_sig),
                 K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
                                         K_POLL_MODE_NOTIFY_ONLY,
-                                        &dac_sig),
+                                        &dac_ii_sig),
                 K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
                                         K_POLL_MODE_NOTIFY_ONLY,
                                         &adc_0_sig),
-                // K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
-                //                         K_POLL_MODE_NOTIFY_ONLY,
-                //                         &button_sig),
-                // K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
-                //                         K_POLL_MODE_NOTIFY_ONLY,
-                //                         &ble_sig),
+                K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                                        K_POLL_MODE_NOTIFY_ONLY,
+                                        &adc_1_sig),
+                K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                                        K_POLL_MODE_NOTIFY_ONLY,
+                                        &adc_2_sig),
+                K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                                        K_POLL_MODE_NOTIFY_ONLY,
+                                        &ble_sig),
         };
 
         while (1) {
@@ -476,11 +513,24 @@ int main(void){
                 /* Event 0: LED machine (dump) */
                 if (events[0].signal->signaled) {
                         events[0].signal->signaled = 0;
-                        // led_state_machine_step();
+                        uint16_t dac_1_value;
+
+                        if(update_dac_1_ble){
+                                dac_1_value = (uint16_t)BLE_PACKET.ntf_read_data[1] |
+                                        ((uint16_t)BLE_PACKET.ntf_read_data[0] << 8);
+                                ad5761_generate_output_signal(&ad5761_dev_i, dac_1_value);
+
+                                update_dac_1_ble = 0;
+                        }
+
+                        BLE_PACKET.ntf_data[6] = (dac_1_value >> 8) & 0xFF;
+                        BLE_PACKET.ntf_data[7] = dac_1_value & 0xFF;
                 }
 
                 /* Event 1: DAC output voltage */
                 if (events[1].signal->signaled) {
+                        events[1].signal->signaled = 0;
+                        #ifdef DEBUG_EVENT_1
                         events[1].signal->signaled = 0;
                         // ad5761_fsm_step_triangle(&ad5761_dev_i, &dac_fsm_runtime);
                         #ifdef DEBUG_DAC_1_THEN_2
@@ -518,15 +568,22 @@ int main(void){
                         // BLE_PACKET.ntf_data[8] = (dac_2_value >> 8) & 0xFF;
                         // BLE_PACKET.ntf_data[9] = dac_2_value & 0xFF;
                         #endif
-                }
+                        #endif
 
-                /* Event 2: ADC measure */
-                if (events[2].signal->signaled) {
-                        events[2].signal->signaled = 0;
-                        int64_t time_now = k_uptime_get();
-                        // printk("Time stamp: %" PRId64 "\n", time_now);
+                        uint16_t dac_2_value;
 
-                        #ifdef DEBUG_BLE_DAC
+                        if(update_dac_2_ble){
+                                dac_2_value = (uint16_t)BLE_PACKET.ntf_read_data[3] |
+                                        ((uint16_t)BLE_PACKET.ntf_read_data[2] << 8);
+                                ad5761_generate_output_signal(&ad5761_dev_ii, dac_2_value);
+
+                                update_dac_2_ble = 0;
+                        }
+
+                        BLE_PACKET.ntf_data[8] = (dac_2_value >> 8) & 0xFF;
+                        BLE_PACKET.ntf_data[9] = dac_2_value & 0xFF;
+
+                        #ifdef DEBUG_BLE_DAC_DUMP
                         uint16_t dac_1_value;
                         uint16_t dac_2_value;
 
@@ -537,8 +594,8 @@ int main(void){
                                         ((uint16_t)BLE_PACKET.ntf_read_data[2] << 8);
                                 ad5761_generate_output_signal(&ad5761_dev_i, dac_1_value);
                                 ad5761_generate_output_signal(&ad5761_dev_ii, dac_2_value);
-                                printk("DAC 1 Value: 0x%04X\n", dac_1_value);
-                                printk("DAC 2 value: 0x%04X\n", dac_2_value);
+                                // printk("DAC 1 Value: 0x%04X\n", dac_1_value);
+                                // printk("DAC 2 value: 0x%04X\n", dac_2_value);
 
                                 update_dac_ble = 0;
                         }
@@ -548,17 +605,56 @@ int main(void){
                         BLE_PACKET.ntf_data[8] = (dac_2_value >> 8) & 0xFF;
                         BLE_PACKET.ntf_data[9] = dac_2_value & 0xFF;
                         #endif
+                }
 
-                        adc_read_channel_mV(0);         /* Read Transimpedance IDS */
-                        BLE_PACKET.ntf_data[0] = (adc_mV >> 8) & 0xFF;
-                        BLE_PACKET.ntf_data[1] = adc_mV & 0xFF;
-                        adc_read_channel_mV(1);         /* Read VDS */
-                        BLE_PACKET.ntf_data[2] = (adc_mV >> 8) & 0xFF;
-                        BLE_PACKET.ntf_data[3] = adc_mV & 0xFF;
-                        adc_read_channel_mV(2);         /* Read VG */
-                        BLE_PACKET.ntf_data[4] = (adc_mV >> 8) & 0xFF;
-                        BLE_PACKET.ntf_data[5] = adc_mV & 0xFF;
+                /* Event 2: ADC measure */
+                if (events[2].signal->signaled) {
+                        events[2].signal->signaled = 0;
+
+                        adc_read_channel_mV_all();
                         
+                        BLE_PACKET.ntf_data[0] = (adc_ch0_mV >> 8) & 0xFF;
+                        BLE_PACKET.ntf_data[1] = adc_ch0_mV & 0xFF;
+                        BLE_PACKET.ntf_data[2] = (adc_ch1_mV >> 8) & 0xFF;
+                        BLE_PACKET.ntf_data[3] = adc_ch1_mV & 0xFF;
+                        BLE_PACKET.ntf_data[4] = (adc_ch2_mV >> 8) & 0xFF;
+                        BLE_PACKET.ntf_data[5] = adc_ch2_mV & 0xFF;
+
+                        // adc_read_channel_mV(0);         /* Read Transimpedance IDS */
+                        // BLE_PACKET.ntf_data[0] = (adc_mV >> 8) & 0xFF;
+                        // BLE_PACKET.ntf_data[1] = adc_mV & 0xFF;
+                }
+
+                if (events[3].signal->signaled) {
+                        events[3].signal->signaled = 0;
+                        
+                        // adc_read_channel_mV(1);         /* Read VDS */
+                        // BLE_PACKET.ntf_data[2] = (adc_mV >> 8) & 0xFF;
+                        // BLE_PACKET.ntf_data[3] = adc_mV & 0xFF;
+                }
+
+                if (events[4].signal->signaled) {
+                        events[4].signal->signaled = 0;
+                        
+                        // adc_read_channel_mV(2);         /* Read VG */
+                        // BLE_PACKET.ntf_data[4] = (adc_mV >> 8) & 0xFF;
+                        // BLE_PACKET.ntf_data[5] = adc_mV & 0xFF;
+                }
+                
+                if (events[5].signal->signaled) {
+                        events[5].signal->signaled = 0;
+                        int64_t time_now = k_uptime_get();
+                        
+                        // Passing timer to notify packet
+                        BLE_PACKET.ntf_data[10] = (time_now >> 56) & 0xFF;
+                        BLE_PACKET.ntf_data[11] = (time_now >> 48) & 0xFF;
+                        BLE_PACKET.ntf_data[12] = (time_now >> 40) & 0xFF;
+                        BLE_PACKET.ntf_data[13] = (time_now >> 32) & 0xFF;
+                        BLE_PACKET.ntf_data[14] = (time_now >> 24) & 0xFF;
+                        BLE_PACKET.ntf_data[15] = (time_now >> 16) & 0xFF;
+                        BLE_PACKET.ntf_data[16] = (time_now >> 8) & 0xFF;
+                        BLE_PACKET.ntf_data[17] = (time_now >> 0) & 0xFF;
+
                         if(update_cmd_ble){
                                 system_ble_machine();
                                 update_cmd_ble = 0;
@@ -568,9 +664,8 @@ int main(void){
                         if(default_conn){
                                 send_notify_data();
                         }
-
                 }
-
+                #ifdef DEBUG_TIMER_3
                 // /* Event 3: Button trigger */
                 // if (events[3].signal->signaled) {
                 //         events[3].signal->signaled = 0;
@@ -602,6 +697,7 @@ int main(void){
                 //                 dac_stop(&dac_fsm_runtime);
                 //         }
                 // }
+                #endif
         }
 
         return 0;

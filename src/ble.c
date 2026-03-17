@@ -56,6 +56,8 @@ static uint8_t ble_rx_data[RX_BUF_SIZE];
 static size_t  ble_rx_len;
 
 bool update_dac_ble;
+bool update_dac_1_ble;
+bool update_dac_2_ble;
 bool update_cmd_ble;
 
 void ble_rx_machine(void)
@@ -64,6 +66,8 @@ void ble_rx_machine(void)
         BLE_PACKET.ntf_read_data[i] = ble_rx_data[i];
     }
     update_dac_ble = 1;
+    update_dac_1_ble = 1;
+    update_dac_2_ble = 1;
 }
 
 static ssize_t on_write(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
@@ -143,7 +147,7 @@ static void tx2_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
 
 BT_GATT_SERVICE_DEFINE(my_service,
     BT_GATT_PRIMARY_SERVICE(BT_UUID_DECLARE_16(0x1234)),
-    BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_16(0x9876),   // UUID của characteristic
+    BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_16(0x9876),   // UUID of characteristic
                            BT_GATT_CHRC_WRITE | BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,            // Enable write
                            BT_GATT_PERM_WRITE | BT_GATT_PERM_READ | BT_GATT_PERM_NONE,           // Write permission
                            on_read, on_write, NULL),        // Callback when receive data
