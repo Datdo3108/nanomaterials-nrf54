@@ -1,0 +1,13 @@
+# Target labels
+ lmp91000_board
+# Source files and their labels
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/CMakeFiles/lmp91000_board
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/CMakeFiles/lmp91000_board.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/CMakeFiles/lmp91000_board-complete.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-build.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-configure.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-download.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-install.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-mkdir.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-patch.rule
+E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-update.rule
