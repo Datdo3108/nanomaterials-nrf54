@@ -1,0 +1,59 @@
+/ {
+	leds {
+		led_00: led00 {
+			gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+			label = "LED 00";
+		};
+
+		led_01: led01 {
+			gpios = <&gpio0 1 GPIO_ACTIVE_HIGH>;
+			label = "LED 01";
+		};
+	};
+};
+
+&pinctrl {
+	i2c1_default: i2c1_default {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 12)>,
+				<NRF_PSEL(TWIM_SCL, 1, 11)>;
+		};
+	};
+
+	i2c1_sleep: i2c1_sleep {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 1, 12)>,
+				<NRF_PSEL(TWIM_SCL, 1, 11)>;
+			low-power-enable;
+		};
+	};
+};
+
+/ {
+	aliases {
+		i2c1 = &i2c20;  // Creating an alias for easy referencing if needed
+	};
+};
+
+/* Enable I2C and configure pins */
+&i2c20 {
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	clock-frequency = <100000>;  // 100kHz standard clock frequency
+	pinctrl-0 = <&i2c1_default>;
+	pinctrl-1 = <&i2c1_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	lmp91000: lmp91000@48 {
+		compatible = "i2c-device";
+		reg = <0x48>;
+	};
+};
+
+&spi20 {
+	status = "disabled";
+};
+
+&uart20 {
+	status = "disabled";
+};
