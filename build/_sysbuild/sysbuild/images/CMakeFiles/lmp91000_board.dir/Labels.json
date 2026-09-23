@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/CMakeFiles/lmp91000_board"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/CMakeFiles/lmp91000_board.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/CMakeFiles/lmp91000_board-complete.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-build.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-configure.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-download.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-install.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-mkdir.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-patch.rule"
+		},
+		{
+			"file" : "E:/Projects/nanomaterials-nrf54/lmp91000_board/build/_sysbuild/sysbuild/images/lmp91000_board-prefix/src/lmp91000_board-stamp/lmp91000_board-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"lmp91000_board"
+		],
+		"name" : "lmp91000_board"
+	}
+}

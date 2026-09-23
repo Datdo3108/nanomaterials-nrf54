@@ -1,0 +1,20 @@
+app:
+  address: 0x0
+  end_address: 0xfd000
+  region: flash_primary
+  size: 0xfd000
+bootconf:
+  address: 0xffd080
+  end_address: 0xffd084
+  region: bootconf
+  size: 0x4
+otp:
+  address: 0xffd500
+  end_address: 0xffd9fc
+  region: otp
+  size: 0x4fc
+sram_primary:
+  address: 0x20000000
+  end_address: 0x20030000
+  region: sram_primary
+  size: 0x30000

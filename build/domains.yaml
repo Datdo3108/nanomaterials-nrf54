@@ -1,0 +1,7 @@
+default: lmp91000_board
+build_dir: E:/Projects/nanomaterials-nrf54/lmp91000_board/build
+domains:
+  - name: lmp91000_board
+    build_dir: E:/Projects/nanomaterials-nrf54/lmp91000_board/build/lmp91000_board
+flash_order:
+  - lmp91000_board
