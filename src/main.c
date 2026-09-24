@@ -1,7 +1,12 @@
+#include "ble.h"
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/drivers/gpio.h>
+
+// #include <zephyr/logging/log.h>
+// LOG_MODULE_REGISTER(debug, LOG_LEVEL_INF);
+
 
 #define LED00_NODE        DT_NODELABEL(led_00)
 #define LED01_NODE        DT_NODELABEL(led_01)
@@ -25,8 +30,10 @@ int lmp91000_read_status(uint8_t *status)
     return i2c_reg_read_byte_dt(&lmp91000, REG_STATUS, status);
 }
 
-int main(void)
-{
+int main(void) {
+        ble_init();
+        // LOG_INF("Initializing device.......");
+
         gpio_pin_configure_dt(&led_00_spec, GPIO_OUTPUT);
         gpio_pin_configure_dt(&led_01_spec, GPIO_OUTPUT);
         gpio_pin_set_dt(&led_00_spec, 0);
@@ -44,6 +51,7 @@ int main(void)
                         k_busy_wait(1000000);
 
                         // printk("STATUS read failed: %d\n", ret);
+                        // LOG_INF("LMP91000 status read: Failed");
                         return -ENODEV;
                 }
                 else{
@@ -51,13 +59,7 @@ int main(void)
                         k_busy_wait(200000);
                         gpio_pin_set_dt(&led_01_spec, 0);
                         k_busy_wait(200000);
+                        // LOG_INF("LMP91000 status: OK");
                 }
         }
-
-//     if (ret) {
-//         // printk("STATUS read failed: %d\n", ret);
-//         return;
-//     }
-
-//     printk("STATUS = 0x%02X, READY = %d\n", status, status & STATUS_READY_MASK);
 }

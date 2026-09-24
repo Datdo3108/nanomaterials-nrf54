@@ -1,0 +1,399 @@
+#include "ble.h"
+
+#define EN_LOGGING
+// #define SAMPLE_BLE_CODE
+/*
+    Find sample code at: https://github.com/zephyrproject-rtos/zephyr/blob/main/samples/bluetooth/st_ble_sensor/src/main.c
+
+*/
+// #define MY_BLE_CODE
+
+#ifdef MY_BLE_CODE
+#ifdef EN_LOGGING
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(debug, LOG_LEVEL_INF);
+#endif
+
+static volatile bool ble_ready = false;
+
+ble_packet_str BLE_PACKET ;
+
+static struct bt_data ad[] = {
+    BT_DATA_BYTES(BT_DATA_FLAGS,(BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+    BT_DATA(BT_DATA_MANUFACTURER_DATA, BLE_PACKET.adv_data, sizeof(BLE_PACKET.adv_data))
+};
+
+
+static const struct bt_data sd[] = {
+    BT_DATA(BT_DATA_NAME_COMPLETE, CONFIG_BT_DEVICE_NAME, sizeof(CONFIG_BT_DEVICE_NAME) - 1),
+};
+
+/* 
+    Advertising interval: time(s) = 0.625 * value
+    Ex: value = 3200
+        time = 3200*0.625 = 2
+*/
+#define ADV_INTERVAL_MIN  800      // 
+#define ADV_INTERVAL_MAX  1600      // Time (s) = 0.625 * value
+
+static const struct bt_le_adv_param adv_param = BT_LE_ADV_PARAM_INIT(
+    BT_LE_ADV_OPT_CONNECTABLE | BT_LE_ADV_OPT_USE_IDENTITY | BT_LE_ADV_OPT_NO_2M,
+    ADV_INTERVAL_MIN,    
+    ADV_INTERVAL_MAX,
+    NULL);
+
+const static struct bt_gatt_attr *tx_attr;
+
+#define RX_BUF_SIZE 16
+
+static uint8_t ble_rx_data[RX_BUF_SIZE];
+static size_t  ble_rx_len;
+
+// void ble_rx_machine(void)
+// {   
+//     for (int i = 0; i < 4; i++) {
+//         BLE_PACKET.ntf_read_data[i] = ble_rx_data[i];
+//     }
+//     update_dac_ble = 1;
+//     update_dac_1_ble = 1;
+//     update_dac_2_ble = 1;
+// }
+
+static ssize_t on_write(struct bt_conn *conn, const struct bt_gatt_attr *attr, const void *buf,
+    uint16_t len, uint16_t offset, uint8_t flags)   // received data from device
+{
+    if (offset != 0) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+
+    ble_rx_len = MIN(len, RX_BUF_SIZE);
+    memcpy(ble_rx_data, buf, ble_rx_len);
+
+    printk("RX write (%d bytes): ", ble_rx_len);
+    for (int i = 0; i < ble_rx_len; i++) {
+        printk("%02X ", ble_rx_data[i]);
+    }
+    printk("\n");
+
+    // ble_rx_machine();
+
+    return len;
+}
+
+static ssize_t on_read(struct bt_conn *conn, const struct bt_gatt_attr *attr, 
+    void *buf, uint16_t len, uint16_t offset)       // write data to device
+{
+    // uint8_t read_value[2];         /* Set this data */
+
+    size_t read_len = sizeof(BLE_PACKET.ntf_read_data);
+
+    // If offset size is larger than data size, nothing to return
+    if (offset > read_len) {
+        return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+    }
+
+    // Return value from offset offset
+    return bt_gatt_attr_read(conn, attr, buf, len, offset, BLE_PACKET.ntf_read_data, read_len);
+}
+
+struct bt_conn *default_conn;
+volatile bool notify_enable;
+
+static void tx_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
+{
+    bool notif_enabled = (value == BT_GATT_CCC_NOTIFY);
+    printk("Notifications %s\n", notif_enabled ? "enabled" : "disabled");
+}
+
+BT_GATT_SERVICE_DEFINE(my_service,
+    BT_GATT_PRIMARY_SERVICE(BT_UUID_DECLARE_16(0x1234)),
+    BT_GATT_CHARACTERISTIC(BT_UUID_DECLARE_16(0x9876),   // UUID of characteristic
+                           BT_GATT_CHRC_WRITE | BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,            // Enable write
+                           BT_GATT_PERM_WRITE | BT_GATT_PERM_READ | BT_GATT_PERM_NONE,           // Write permission
+                           on_read, on_write, NULL),        // Callback when receive data
+    BT_GATT_CCC(tx_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+); 
+
+#ifdef EN_TX_POWER
+void set_tx_power(uint8_t handle_type, uint16_t handle, int8_t tx_pwr_lvl)
+{
+    struct bt_hci_cp_vs_write_tx_power_level *cp;
+    struct bt_hci_rp_vs_write_tx_power_level *rp;
+    struct net_buf *buf, *rsp = NULL;
+    int err;
+
+    buf = bt_hci_cmd_create(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL,
+                sizeof(*cp));
+    if (!buf) {
+        // LOG_ERR("Unable to allocate command buffer");
+        return;
+    }
+
+    cp = net_buf_add(buf, sizeof(*cp));
+    cp->handle = sys_cpu_to_le16(handle);
+    cp->handle_type = handle_type;
+    cp->tx_power_level = tx_pwr_lvl;
+
+    err = bt_hci_cmd_send_sync(BT_HCI_OP_VS_WRITE_TX_POWER_LEVEL,
+                   buf, &rsp);
+    if (err) {
+        // LOG_ERR("Set Tx power err: %d", err);
+        return;
+    }
+
+    rp = (void *)rsp->data;
+    // LOG_INF("Actual Tx Power: %d", rp->selected_tx_power);
+
+    net_buf_unref(rsp);
+}
+
+void get_tx_power(uint8_t handle_type, uint16_t handle, int8_t *tx_pwr_lvl)
+{
+    struct bt_hci_cp_vs_read_tx_power_level *cp;
+    struct bt_hci_rp_vs_read_tx_power_level *rp;
+    struct net_buf *buf, *rsp = NULL;
+    int err;
+
+    *tx_pwr_lvl = 0xFF;
+    buf = bt_hci_cmd_create(BT_HCI_OP_VS_READ_TX_POWER_LEVEL,
+                sizeof(*cp));
+    if (!buf) {
+        // LOG_ERR("Unable to allocate command buffer");
+        return;
+    }
+
+    cp = net_buf_add(buf, sizeof(*cp));
+    cp->handle = sys_cpu_to_le16(handle);
+    cp->handle_type = handle_type;
+
+    err = bt_hci_cmd_send_sync(BT_HCI_OP_VS_READ_TX_POWER_LEVEL,
+                   buf, &rsp);
+    if (err) {
+        // LOG_ERR("Read Tx power err: %d", err);
+        return;
+    }
+
+    rp = (void *)rsp->data;
+    *tx_pwr_lvl = rp->tx_power_level;
+
+    net_buf_unref(rsp);
+}
+#endif
+
+static void connected(struct bt_conn *conn, uint8_t err)
+{
+    if (err) {
+		LOG_ERR("Connection failed (err %u)", err);
+	} else {
+		LOG_INF("Connected");
+		// if (!default_conn) {
+			default_conn = bt_conn_ref(conn);
+		// }
+	}
+}
+
+static void disconnected(struct bt_conn *conn, uint8_t reason)
+{
+    LOG_INF("Device disconnected (reason %u)", reason);
+    // printk("Device disconnected (reason %u)", reason);
+
+    if (default_conn) {
+        bt_conn_unref(default_conn);
+        default_conn = NULL;
+    }
+    // gpio_pin_configure_dt(&connect_led_spec, GPIO_DISCONNECTED);
+}
+
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+	.connected = connected,
+	.disconnected = disconnected,
+};
+
+void send_notify_data(void)
+{
+    if (!default_conn) {
+        return;
+    }
+
+    bt_gatt_notify(default_conn, &my_service.attrs[1], BLE_PACKET.ntf_data, sizeof(BLE_PACKET.ntf_data));
+}
+
+static void bt_ready(int err) {
+    if (err) {
+        // LOG_ERR("Bluetooth init failed (err %d)", err);
+        return;
+    }
+    // LOG_INF("Bluetooth initialized");
+    ble_ready = true;
+}
+
+void ble_init(void) {
+    BLE_PACKET.adv_data[0] = 0x15;
+    BLE_PACKET.adv_data[1] = 0xFF;
+
+    int err = bt_enable(bt_ready);
+    if (err) {
+        // LOG_ERR("Bluetooth init failed (err %d)", err);
+        return;
+    }
+
+    LOG_INF("BLE initialized!");
+    
+    while (!ble_ready) {
+        // LOG_INF("Waiting for Bluetooth stack...");
+        k_busy_wait(100);
+    }
+    
+    err = bt_le_adv_start(&adv_param, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
+    if (err) {
+        LOG_ERR("Advertising failed to start (err %d)", err);
+        // printk("Advertising failed to start (err %d)", err);
+    } else {
+        LOG_INF("BLE Advertising started");
+        // printk("BLE Advertising started");
+    }
+
+}
+#endif
+
+#ifdef SAMPLE_BLE_CODE
+
+/* Button value. */
+static uint16_t but_val;
+
+/* Prototype */
+static ssize_t recv(struct bt_conn *conn,
+		    const struct bt_gatt_attr *attr, const void *buf,
+		    uint16_t len, uint16_t offset, uint8_t flags);
+
+/* Custom Service  */
+static const struct bt_uuid_128 st_service_uuid = BT_UUID_INIT_128(
+	BT_UUID_128_ENCODE(0x0000fe40, 0xcc7a, 0x482a, 0x984a, 0x7f2ed5b3e58f));
+
+/* LED service */
+static const struct bt_uuid_128 led_char_uuid = BT_UUID_INIT_128(
+	BT_UUID_128_ENCODE(0x0000fe41, 0x8e22, 0x4541, 0x9d4c, 0x21edae82ed19));
+
+/* Notify button service */
+static const struct bt_uuid_128 but_notif_uuid = BT_UUID_INIT_128(
+	BT_UUID_128_ENCODE(0x0000fe42, 0x8e22, 0x4541, 0x9d4c, 0x21edae82ed19));
+
+#define DEVICE_NAME CONFIG_BT_DEVICE_NAME
+#define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
+#define ADV_LEN 12
+
+/* Advertising data */
+static uint8_t manuf_data[ADV_LEN] = {
+	0x01 /*SKD version */,
+	0x83 /* STM32WB - P2P Server 1 */,
+	0x00 /* GROUP A Feature  */,
+	0x00 /* GROUP A Feature */,
+	0x00 /* GROUP B Feature */,
+	0x00 /* GROUP B Feature */,
+	0x00, /* BLE MAC start -MSB */
+	0x00,
+	0x00,
+	0x00,
+	0x00,
+	0x00, /* BLE MAC stop */
+};
+
+static const struct bt_data ad[] = {
+	BT_DATA_BYTES(BT_DATA_FLAGS, (BT_LE_AD_GENERAL | BT_LE_AD_NO_BREDR)),
+	BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
+	BT_DATA(BT_DATA_MANUFACTURER_DATA, manuf_data, ADV_LEN)
+};
+
+/* BLE connection */
+struct bt_conn *ble_conn;
+/* Notification state */
+volatile bool notify_enable;
+
+static void mpu_ccc_cfg_changed(const struct bt_gatt_attr *attr, uint16_t value)
+{
+	ARG_UNUSED(attr);
+	notify_enable = (value == BT_GATT_CCC_NOTIFY);
+	LOG_INF("Notification %s", notify_enable ? "enabled" : "disabled");
+}
+
+/* ST BLE Sensor GATT services and characteristic */
+
+BT_GATT_SERVICE_DEFINE(stsensor_svc,
+BT_GATT_PRIMARY_SERVICE(&st_service_uuid),
+BT_GATT_CHARACTERISTIC(&led_char_uuid.uuid,
+		       BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE_WITHOUT_RESP,
+		       BT_GATT_PERM_WRITE, NULL, recv, (void *)1),
+BT_GATT_CHARACTERISTIC(&but_notif_uuid.uuid, BT_GATT_CHRC_NOTIFY,
+		       BT_GATT_PERM_READ, NULL, NULL, &but_val),
+BT_GATT_CCC(mpu_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+);
+
+static void button_callback(const struct device *gpiob, struct gpio_callback *cb,
+		     uint32_t pins)
+{
+	int err;
+
+	LOG_INF("Button pressed");
+	if (ble_conn) {
+		if (notify_enable) {
+			err = bt_gatt_notify(NULL, &stsensor_svc.attrs[4],
+					     &but_val, sizeof(but_val));
+			if (err) {
+				LOG_ERR("Notify error: %d", err);
+			} else {
+				LOG_INF("Send notify ok");
+				but_val = (but_val == 0) ? 0x100 : 0;
+			}
+		} else {
+			LOG_INF("Notify not enabled");
+		}
+	} else {
+		LOG_INF("BLE not connected");
+	}
+}
+
+static void bt_ready(int err)
+{
+	if (err) {
+		LOG_ERR("Bluetooth init failed (err %d)", err);
+		return;
+	}
+	LOG_INF("Bluetooth initialized");
+	/* Start advertising */
+	err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), NULL, 0);
+	if (err) {
+		LOG_ERR("Advertising failed to start (err %d)", err);
+		return;
+	}
+
+	LOG_INF("Configuration mode: waiting connections...");
+}
+
+static void connected(struct bt_conn *connected, uint8_t err)
+{
+	if (err) {
+		LOG_ERR("Connection failed (err %u)", err);
+	} else {
+		LOG_INF("Connected");
+		if (!ble_conn) {
+			ble_conn = bt_conn_ref(connected);
+		}
+	}
+}
+
+static void disconnected(struct bt_conn *disconn, uint8_t reason)
+{
+	if (ble_conn) {
+		bt_conn_unref(ble_conn);
+		ble_conn = NULL;
+	}
+
+	LOG_INF("Disconnected, reason %u %s", reason, bt_hci_err_to_str(reason));
+}
+
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+	.connected = connected,
+	.disconnected = disconnected,
+};
+
+#endif
