@@ -1,0 +1,6 @@
+description: TI ADS1220 24-bit ADC (used by a custom driver)
+compatible: "ti,ads1220"
+include: [spi-device.yaml]
+properties:
+  drdy-gpios:
+    type: phandle-array

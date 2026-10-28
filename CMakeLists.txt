@@ -4,3 +4,5 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(xiao_ads1220)
 
 target_sources(app PRIVATE src/main.c)
+
+zephyr_library_sources(src/ads1220.c)
