@@ -230,7 +230,7 @@ int ads1220_init(struct ads1220 *d)
 	 */
 	ADS_TRY(ads1220_bypass_pga(d, true));
 	ADS_TRY(read_reg(d, ADS1220_REG_0, &ctrl));
-    // printf("Read register 0\n");
+    printf("Read register 0: %02x\n", ctrl);
 	ADS_TRY(ads1220_bypass_pga(d, false));
 
 	if (ctrl != 0x01) {

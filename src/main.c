@@ -10,7 +10,7 @@
 #include "ads1220.h"
 
 /* 1000 msec = 1 sec */
-#define SLEEP_TIME_MS   200
+#define SLEEP_TIME_MS   50
 
 /* The devicetree node identifier for the "led0" alias. */
 #define LED0_NODE DT_ALIAS(led0)
@@ -71,6 +71,9 @@ int main(void)
 	ads1220_set_data_rate(&adc, ADS1220_DR_LVL_0);        /* 20 SPS in normal mode */
 
         while (1) {
+                // ret = ads1220_init(&adc);
+                // k_msleep(SLEEP_TIME_MS);
+
                 int32_t raw;
 		float mv;
 
